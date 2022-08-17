@@ -1,0 +1,28 @@
+version: "3"
+
+services:
+  back:
+    build:
+      context: .docker/build/app
+      dockerfile: Dockerfile
+    volumes:
+      - ./backend:/var/www/
+    working_dir: /var/www/
+    ports:
+      - 8080:8080
+    environment:
+      - NODE_OPTIONS=--openssl-legacy-provider
+    tty: true
+
+  front:
+    build:
+      context: .docker/build/app
+      dockerfile: Dockerfile
+    volumes:
+      - ./frontend:/var/www/
+    working_dir: /var/www/
+    ports:
+      - 3000:3000
+    environment:
+      - NODE_OPTIONS=--openssl-legacy-provider
+    tty: true
