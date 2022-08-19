@@ -100,7 +100,7 @@ export class RoomEvents implements EventRouter
     socket.emit(this.EVENT_USERS, room.users)
 
     // Notifica os outros usuários
-    socket.broadcast.emit(this.EVENT_USER_CONNECTED, {
+    socket.to(roomId).emit(this.EVENT_USER_CONNECTED, {
       id: userId,
       name: username,
       connected: true,
