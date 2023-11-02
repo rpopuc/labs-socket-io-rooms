@@ -19,6 +19,7 @@ export class RoomEvents implements EventRouter
     this.logger = new ConsoleLogger('[ROOM-EVENT] ')
   }
 
+  // Método chamado quando uma conexão é estabelecida
   public setup(socket: Socket, io: IOServer): void
   {
     this.onConnect(socket, io)

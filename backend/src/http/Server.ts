@@ -30,6 +30,7 @@ export default class Server
 
   registerSocketRoutes(router: EventRouter): Server
   {
+    // Registra o roteador de eventos para ser usado no método run()
     this.eventRouters.push(router)
     return this
   }
@@ -44,8 +45,10 @@ export default class Server
       }
     })
 
+    // Percorre todos os roteadores de eventos e registra os middlewares
     this.eventRouters.forEach(eventRouter => eventRouter.registerMiddlewares(io))
 
+    // Notifica todos os roteadores de eventos que uma conexão foi estabelecida
     io.on("connection", (socket) => {
       console.log(JSON.stringify({"type": "socket", "message": "User connected"}))
       this.eventRouters.forEach(eventRouter => eventRouter.setup(socket, io))
