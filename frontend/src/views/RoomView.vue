@@ -2,17 +2,22 @@
 import { ref, onMounted, onUnmounted } from "vue"
 import { useRoute } from 'vue-router'
 import { useStorage } from '../composables/useStorage'
-import { useRoom } from '../composables/useRoom'
+import { useRoom, Room } from '../composables/useRoom'
+import { Room as RoomService } from '../services/Room'
 
 const route = useRoute()
 
 let userId = useStorage('userId', '260976')
 let username = useStorage('username', 'Robson')
 let roomId = route.params.roomId.toString()
-const room = useRoom(userId.value, username.value, roomId)
+let room = useRoom(userId.value, username.value, roomId)
 
 onMounted(() => {
-  room.connect()
+  const roomService = new RoomService()
+  roomService.validate(roomId).then(roomInfo => {
+    room.init()
+    room.connect()
+  })
 })
 
 onUnmounted(() => {
@@ -21,14 +26,8 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div>
+  <div v-if="room">
     <div class="flex flex-col h-screen w-full justify-center items-center">
-
-      <div class="flex flex-col w-96">
-        <label>RoomId</label>
-        <input type="text" :value="roomId" readonly class="border p-2 my-2 w-full"/>
-      </div>
-
       <div class="flex flex-col w-96">
         <label>UserId</label>
         <input type="text" :value="userId" readonly class="border p-2 my-2 w-full"/>

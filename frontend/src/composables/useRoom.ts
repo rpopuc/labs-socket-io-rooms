@@ -1,5 +1,6 @@
 import { ref, Ref, watch } from "vue"
-import socket from "../socket"
+import { useSocket } from "./useSocket"
+import { Socket } from "socket.io-client"
 
 export interface User {
   id: string
@@ -7,38 +8,54 @@ export interface User {
   connected: boolean
 }
 
-export function useRoom(userId: string, username: string, roomId: string)
+export type Room = {
+  users: Ref<User[]>
+  socket: Socket|null
+  init: Function
+  connect: Function
+  disconnect: Function
+}
+
+export function useRoom(userId: string, username: string, roomId: string): Room
 {
   let users: Ref<User[]> = ref([])
+  let socket: Socket|null = null
 
-  socket.on("USERS", roomUsers => {
-    users.value = roomUsers
-  })
+  const init = (): void => {
+    socket = useSocket('http://localhost:8080').init()
 
-  socket.on('USER_CONNECTED', newUser => {
-    const user = users.value.find(user => user.id === newUser.id)
+    socket.on("USERS", roomUsers => {
+      users.value = roomUsers
+    })
 
-    if (user) {
-      user.connected = true
-      return
-    }
+    socket.on('USER_CONNECTED', newUser => {
+      const user = users.value.find(user => user.id === newUser.id)
 
-    users.value.push(newUser)
-  })
+      if (user) {
+        user.connected = true
+        return
+      }
 
-  socket.on("USER_DISCONNECTED", userId => {
-    const user = users.value.find(user => user.id === userId)
-    if (user) {
-      user.connected = false
-    }
-  })
+      users.value.push(newUser)
+    })
+
+    socket.on("USER_DISCONNECTED", userId => {
+      const user = users.value.find(user => user.id === userId)
+      if (user) {
+        user.connected = false
+      }
+    })
+  }
 
   const connect = (): void => {
+    if (!socket) init()
+    if (!socket) return
     socket.auth = { username, userId, roomId }
     socket.connect()
   }
 
   const disconnect = (): void => {
+    if (!socket) return
     socket.off("USERS");
     socket.off("USER_DISCONNECTED");
     socket.disconnect()
@@ -47,6 +64,7 @@ export function useRoom(userId: string, username: string, roomId: string)
   return {
     users,
     socket,
+    init,
     connect,
     disconnect
   }

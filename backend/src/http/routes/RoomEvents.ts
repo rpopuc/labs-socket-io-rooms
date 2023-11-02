@@ -61,9 +61,15 @@ export class RoomEvents implements EventRouter
       return room
     }
 
+    room = this.createRoom(roomId, ownerId)
+
+    return room
+  }
+
+  private createRoom(roomId: string, ownerId: string): Room {
     this.logger.log('Create room', { roomId })
 
-    room = new Room(new ConsoleLogger('[ROOM] '))
+    const room = new Room(new ConsoleLogger('[ROOM] '))
     room.setId(roomId)
     room.setOwner(ownerId)
     this.rooms.push(room)
