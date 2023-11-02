@@ -55,7 +55,7 @@ export default class Server
     })
 
     this.server = server.listen(port, () => {
-      console.log(`listening on *:${port}`)
+      console.log(`Listening on *:${port}`)
     })
   }
 }

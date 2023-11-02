@@ -5,6 +5,7 @@ import { Room } from "@/app/Room"
 import { NullLogger } from "@/app/NullLogger"
 import { ConsoleLogger } from "@/app/ConsoleLogger"
 import { LoggerInterface } from "@/app/LoggerInterface"
+import { randomUUID } from "crypto"
 
 export class RoomEvents implements EventRouter
 {
@@ -24,7 +25,10 @@ export class RoomEvents implements EventRouter
   {
     this.onConnect(socket, io)
 
+    console.log('Setting room events');
     socket.on("disconnect", async (reason: string) => this.disconnect(socket, io, reason))
+    socket.on("create-room", async (arg, callback) => await this.createRoom(socket, callback))
+    socket.on("enter", async (arg, callback) => await this.enterRoom(socket, arg, callback))
   }
 
   private async disconnect(socket: Socket, io: IOServer, reason: string): Promise<void>
@@ -53,21 +57,10 @@ export class RoomEvents implements EventRouter
     this.logger.log('User disconnected', { data: socket.data })
   }
 
-  private getRoom(roomId: string, ownerId: string): Room {
-    let room = this.rooms.find(room => room.id === roomId)
-
-    if (room) {
-      this.logger.log('Enter room', { roomId })
-      return room
-    }
-
-    this.logger.log('Create room', { roomId })
-
-    room = new Room(new ConsoleLogger('[ROOM] '))
-    room.setId(roomId)
-    room.setOwner(ownerId)
-    this.rooms.push(room)
-
+  private getRoom(roomId: string): Room | null {
+    const room = this.rooms.find(room => room.id === roomId)
+    if (!room) return null
+    this.logger.log('Found room', { roomId })
     return room
   }
 
@@ -77,13 +70,12 @@ export class RoomEvents implements EventRouter
     // nome do usuário e identificador da sala
     io.use((socket, next) => {
       const { userId, username, roomId } = socket.handshake.auth
-      if (!userId || !username || !roomId) {
+      if (!userId || !username) {
         return next(new Error("Invalid connection"))
       }
 
       socket.data.username = username
       socket.data.userId = userId
-      socket.data.roomId = roomId
 
       next()
     })
@@ -91,10 +83,21 @@ export class RoomEvents implements EventRouter
 
   private onConnect(socket: Socket, io: IOServer): void
   {
-    const { username, userId, roomId } = socket.data
-    const room = this.getRoom(roomId, userId)
+  }
+
+  private enterRoom(socket: Socket, arg: any, callback: Function): void
+  {
+    const {userId, username} = socket.data
+    const roomId = arg.roomId as string
+    const room = this.getRoom(roomId)
+    if (!room) {
+      callback({ok: false, error: 'Room not found', roomId})
+      return
+    }
+
     room.join(userId, username)
     socket.join(roomId)
+    socket.data.roomId = roomId
 
     // Emite para o novo usuário todos os usuários
     // que estão na sala
@@ -106,5 +109,24 @@ export class RoomEvents implements EventRouter
       name: username,
       connected: true,
     })
+
+    callback({ok: true})
   }
+
+  private createRoom(socket: Socket, callback: Function): void {
+    console.log('creating rooom')
+    const { userId } = socket.data
+    let roomId = randomUUID()
+
+    this.logger.log('Create room', { roomId })
+
+    const room = new Room(new ConsoleLogger('[ROOM] '))
+    room.setId(roomId)
+    room.setOwner(userId)
+    socket.data.roomId = roomId
+    this.rooms.push(room)
+
+    callback(room)
+  }
+
 }

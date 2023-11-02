@@ -7,7 +7,7 @@ export interface User {
   connected: boolean
 }
 
-export function useRoom(userId: string, username: string, roomId: string)
+export function useRoom(userId: string, username: string)
 {
   let users: Ref<User[]> = ref([])
 
@@ -34,7 +34,7 @@ export function useRoom(userId: string, username: string, roomId: string)
   })
 
   const connect = (): void => {
-    socket.auth = { username, userId, roomId }
+    socket.auth = { username, userId }
     socket.connect()
   }
 
@@ -44,10 +44,28 @@ export function useRoom(userId: string, username: string, roomId: string)
     socket.disconnect()
   }
 
+  const create = async () => {
+    return new Promise((resolve) => {
+      socket.emit('create-room', {}, (response: any) => {
+        resolve(response)
+      })
+    })
+  }
+
+  const enter = async (roomId: string) => {
+    return new Promise((resolve) => {
+      socket.emit('enter', {roomId}, (response: any) => {
+        resolve(response)
+      })
+    })
+  }
+
   return {
     users,
     socket,
     connect,
-    disconnect
+    disconnect,
+    create,
+    enter
   }
 }
