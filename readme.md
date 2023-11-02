@@ -33,4 +33,4 @@ docker-compose up -d front
 docker-compose exec front yarn dev
 ```
 
-A aplicação ficará disponível em http://localhost:3030
+A aplicação ficará disponível em http://localhost:3000

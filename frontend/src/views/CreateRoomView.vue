@@ -2,26 +2,28 @@
 import { ref, onMounted } from "vue"
 import { useRouter, useRoute } from 'vue-router'
 import { useStorage } from '../composables/useStorage'
+import { Room } from "../services/Room"
 
 let userId = useStorage('userId', '260976')
 let username = useStorage('username', 'Robson')
-let roomId = ref('12345')
 let agent = ref('')
 
 const router = useRouter()
 const createRoom = () => {
-  router.push({
-    name: 'room',
-    params: {
-      roomId: roomId.value
-    }
+  const roomService = new Room()
+  roomService.create(userId).then(room => {
+    router.push({
+      name: 'room',
+      params: {
+        roomId: room.id
+      }
+    })
   })
 }
 
 onMounted(() => {
   const userAgent = navigator.userAgent
   agent.value = userAgent
-  roomId.value = 'my-room'
   if (userAgent.match(/opr\//i)) {
     username.value = 'Opera'
     userId.value = 'opera'
@@ -37,12 +39,7 @@ onMounted(() => {
 
 <template>
   <div>
-    <div class="flex flex-col h-screen w-full justify-center items-center">
-
-      <div class="flex flex-col w-96">
-        <label>RoomId</label>
-        <input type="text" v-model="roomId" class="border p-2 my-2 w-full"/>
-      </div>
+    <div class="flex flex-col h-screen w-full justify-center items-center gap-6">
 
       <div class="flex flex-col w-96">
         <label>UserId</label>
@@ -55,11 +52,8 @@ onMounted(() => {
       </div>
 
       <div class="flex flex-col w-96 mt-4">
-        <button @click="createRoom" class="w-full p-2 border">Create a room</button>
+        <button @click="createRoom" class="w-full p-2 border bg-gray-600 text-white rounded">Create a room</button>
       </div>
     </div>
   </div>
 </template>
-
-<style scoped>
-</style>
