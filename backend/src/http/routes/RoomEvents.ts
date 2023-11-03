@@ -2,7 +2,6 @@ import "module-alias/register"
 import { EventRouter } from "./EventRouter"
 import { Server as IOServer, Socket } from "socket.io"
 import { Room } from "@/app/Room"
-import { NullLogger } from "@/app/NullLogger"
 import { ConsoleLogger } from "@/app/ConsoleLogger"
 import { LoggerInterface } from "@/app/LoggerInterface"
 
@@ -15,15 +14,38 @@ export class RoomEvents implements EventRouter
   private rooms: Room[] = []
   private logger: LoggerInterface
 
-  constructor() {
+  constructor()
+  {
     this.logger = new ConsoleLogger('[ROOM-EVENT] ')
   }
 
   // Método chamado quando uma conexão é estabelecida
-  public setup(socket: Socket, io: IOServer): void
+  public onConnect(socket: Socket, io: IOServer): void
   {
-    this.onConnect(socket, io)
+    this.notifyConnection(socket, io)
+    this.registerListeners(socket, io)
+  }
 
+  public registerMiddlewares(io: IOServer): void
+  {
+    // Só efetua a conexão se houver dados de usuário
+    // nome do usuário e identificador da sala
+    io.use((socket, next) => {
+      const { userId, username, roomId } = socket.handshake.auth
+      if (!userId || !username || !roomId) {
+        return next(new Error("Invalid connection"))
+      }
+
+      socket.data.username = username
+      socket.data.userId = userId
+      socket.data.roomId = roomId
+
+      next()
+    })
+  }
+
+  private registerListeners(socket: Socket, io: IOServer): void
+  {
     socket.on("disconnect", async (reason: string) => this.disconnect(socket, io, reason))
   }
 
@@ -77,25 +99,7 @@ export class RoomEvents implements EventRouter
     return room
   }
 
-  public registerMiddlewares(io: IOServer): void
-  {
-    // Só efetua a conexão se houver dados de usuário
-    // nome do usuário e identificador da sala
-    io.use((socket, next) => {
-      const { userId, username, roomId } = socket.handshake.auth
-      if (!userId || !username || !roomId) {
-        return next(new Error("Invalid connection"))
-      }
-
-      socket.data.username = username
-      socket.data.userId = userId
-      socket.data.roomId = roomId
-
-      next()
-    })
-  }
-
-  private onConnect(socket: Socket, io: IOServer): void
+  private notifyConnection(socket: Socket, io: IOServer): void
   {
     const { username, userId, roomId } = socket.data
     const room = this.getRoom(roomId, userId)

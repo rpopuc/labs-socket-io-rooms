@@ -9,17 +9,25 @@ import { EventRouter } from "@/http/routes/EventRouter"
 
 dotenv.config()
 
+export class ServerConfig {
+  httpPort?: number = 8080
+  socketPort?: number = 3000
+  socketDomain?: string = "http://localhost"
+}
+
 export default class Server
 {
   app: Express
   eventRouters: EventRouter[] = []
   server: http.Server | null = null
+  config: ServerConfig
 
-  constructor()
+  constructor(config: ServerConfig = {})
   {
     this.app = express()
     this.app.use(express.json())
     this.app.use(cors())
+    this.config = config
   }
 
   registerRoutes(router: Router): Server
@@ -36,11 +44,11 @@ export default class Server
   }
 
   run(): void {
-    const port = process.env.PORT ?? 8888
+    const port = this.config.httpPort ?? 8080
     const server = http.createServer(this.app)
     const io = new IOServer(server, {
       cors: {
-        origin: "http://localhost:3000",
+        origin: `${this.config.socketDomain}:${this.config.socketPort}`,
         methods: ["GET", "POST"]
       }
     })
@@ -51,7 +59,7 @@ export default class Server
     // Notifica todos os roteadores de eventos que uma conexão foi estabelecida
     io.on("connection", (socket) => {
       console.log(JSON.stringify({"type": "socket", "message": "User connected"}))
-      this.eventRouters.forEach(eventRouter => eventRouter.setup(socket, io))
+      this.eventRouters.forEach(eventRouter => eventRouter.onConnect(socket, io))
     })
 
     this.server = server.listen(port, () => {
